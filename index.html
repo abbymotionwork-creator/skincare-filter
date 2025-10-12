@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>护肤品筛选器 - 找到最适合你的面霜</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+        .phone-container {
+            max-width: 428px;
+            margin: 0 auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .product-card {
+            transition: all 0.2s ease;
+        }
+        .product-card:hover {
+            border-color: #374151;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex items-center justify-center min-h-screen py-4">
+        <div class="phone-container w-full min-h-screen bg-white">
+            <!-- Header -->
+            <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+                <div class="p-4 text-center">
+                    <h1 class="text-xl font-bold text-gray-900">找到最适合你的护肤产品</h1>
+                    <p class="text-sm text-gray-500 mt-1">数据来源于李佳琦面霜小课堂</p>
+                </div>
+            </header>
+
+            <!-- Filter Steps -->
+            <div id="filterSteps" class="p-6">
+                <!-- Progress Bar -->
+                <div class="mb-6">
+                    <div class="h-1 bg-gray-200 rounded-full overflow-hidden">
+                        <div id="progressBar" class="h-full bg-gray-900 transition-all duration-300" style="width: 33.33%"></div>
+                    </div>
+                    <div class="text-center mt-2">
+                        <span id="stepIndicator" class="text-sm text-gray-500">1/3</span>
+                    </div>
+                </div>
+
+                <!-- Step 1: Skin Type -->
+                <div id="step1" class="step-content">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold mb-2">你的肤质是？</h2>
+                        <p class="text-gray-600">选择最符合你的肤质类型</p>
+                    </div>
+                    <div class="space-y-3" id="skinTypeOptions"></div>
+                    <button onclick="nextStep()" id="nextBtn1" class="w-full mt-6 px-4 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" disabled>
+                        下一题 →
+                    </button>
+                </div>
+
+                <!-- Step 2: Benefits -->
+                <div id="step2" class="step-content hidden">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold mb-2">[多选]你的护肤目标？</h2>
+                        <p class="text-gray-600">可多选你最关心的功效</p>
+                    </div>
+                    <div class="space-y-3" id="benefitOptions"></div>
+                    <div class="flex gap-3 mt-6">
+                        <button onclick="prevStep()" class="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                            ← 上一题
+                        </button>
+                        <button onclick="nextStep()" id="nextBtn2" class="flex-1 px-4 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" disabled>
+                            下一题 →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Price Range -->
+                <div id="step3" class="step-content hidden">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold mb-2">预算范围？</h2>
+                        <p class="text-gray-600">选择你可接受的价位</p>
+                    </div>
+                    <div class="space-y-3" id="priceOptions"></div>
+                    <div class="flex gap-3 mt-6">
+                        <button onclick="prevStep()" class="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                            ← 上一题
+                        </button>
+                        <button onclick="showResults()" class="flex-1 px-4 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
+                            查看推荐 ✨
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results View -->
+            <div id="resultsView" class="hidden">
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-bold">为你找到 <span id="resultCount" class="text-gray-900">0</span> 个产品</h2>
+                    </div>
+
+                    <div id="productList" class="space-y-4 mb-6"></div>
+                    
+                    <div class="pt-4">
+                        <button onclick="resetFilter()" class="w-full px-4 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
+                            再测一次
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentStep = 1;
+        const filters = {
+            skinType: null,
+            benefits: [],
+            priceCategory: null
+        };
+
+        const skinTypes = ['干皮', '油皮', '干敏皮', '油敏皮', '混合皮'];
+        const benefits = ['保湿补水', '抗皱紧致', '美白提亮', '修护舒缓'];
+        const priceRanges = [
+            { label: '学生党', desc: '300以下' },
+            { label: '质价比', desc: '200-500' },
+            { label: '进阶款', desc: '400-1000' },
+            { label: '贵妇姐姐', desc: '1000-5000' }
+        ];
+
+        // Products data will be loaded here
+        let products = [];
+
+        // Initialize
+        function init() {
+            loadProducts();
+            renderSkinTypeOptions();
+            renderBenefitOptions();
+            renderPriceOptions();
+        }
+
+        async function loadProducts() {
+            // Load products from the TypeScript file (converted to JSON for demo)
+            // In a real app, this would be imported or fetched
+            products = PRODUCTS_DATA; // Will be defined below
+        }
+
+        function renderSkinTypeOptions() {
+            const container = document.getElementById('skinTypeOptions');
+            container.innerHTML = skinTypes.map(skinType => `
+                <button onclick="selectSkinType('${skinType}')" 
+                        class="option-btn w-full p-4 rounded-xl border-2 border-gray-200 text-left hover:border-gray-900 transition-all"
+                        data-skin="${skinType}">
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg">${skinType}</span>
+                        <div class="check-icon hidden w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center">
+                            <span class="text-white text-sm">✓</span>
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+        }
+
+        function renderBenefitOptions() {
+            const container = document.getElementById('benefitOptions');
+            container.innerHTML = benefits.map(benefit => `
+                <button onclick="toggleBenefit('${benefit}')" 
+                        class="option-btn w-full p-4 rounded-xl border-2 border-gray-200 text-left hover:border-gray-900 transition-all"
+                        data-benefit="${benefit}">
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg">${benefit}</span>
+                        <div class="check-icon hidden w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center">
+                            <span class="text-white text-sm">✓</span>
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+        }
+
+        function renderPriceOptions() {
+            const container = document.getElementById('priceOptions');
+            container.innerHTML = priceRanges.map(range => `
+                <button onclick="selectPrice('${range.label}')" 
+                        class="option-btn w-full p-4 rounded-xl border-2 border-gray-200 text-left hover:border-gray-900 transition-all"
+                        data-price="${range.label}">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-lg mb-1">${range.label}</div>
+                            <div class="text-sm text-gray-500">${range.desc}</div>
+                        </div>
+                        <div class="check-icon hidden w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center">
+                            <span class="text-white text-sm">✓</span>
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+        }
+
+        function selectSkinType(skinType) {
+            filters.skinType = skinType;
+            document.querySelectorAll('[data-skin]').forEach(btn => {
+                const isSelected = btn.dataset.skin === skinType;
+                btn.classList.toggle('border-gray-900', isSelected);
+                btn.classList.toggle('bg-gray-50', isSelected);
+                btn.querySelector('.check-icon').classList.toggle('hidden', !isSelected);
+            });
+            document.getElementById('nextBtn1').disabled = false;
+        }
+
+        function toggleBenefit(benefit) {
+            const index = filters.benefits.indexOf(benefit);
+            if (index > -1) {
+                filters.benefits.splice(index, 1);
+            } else {
+                filters.benefits.push(benefit);
+            }
+            
+            const btn = document.querySelector(`[data-benefit="${benefit}"]`);
+            const isSelected = filters.benefits.includes(benefit);
+            btn.classList.toggle('border-gray-900', isSelected);
+            btn.classList.toggle('bg-gray-50', isSelected);
+            btn.querySelector('.check-icon').classList.toggle('hidden', !isSelected);
+            
+            document.getElementById('nextBtn2').disabled = filters.benefits.length === 0;
+        }
+
+        function selectPrice(priceCategory) {
+            filters.priceCategory = priceCategory;
+            document.querySelectorAll('[data-price]').forEach(btn => {
+                const isSelected = btn.dataset.price === priceCategory;
+                btn.classList.toggle('border-gray-900', isSelected);
+                btn.classList.toggle('bg-gray-50', isSelected);
+                btn.querySelector('.check-icon').classList.toggle('hidden', !isSelected);
+            });
+        }
+
+        function nextStep() {
+            currentStep++;
+            updateStepDisplay();
+        }
+
+        function prevStep() {
+            currentStep--;
+            updateStepDisplay();
+        }
+
+        function updateStepDisplay() {
+            document.getElementById('step1').classList.toggle('hidden', currentStep !== 1);
+            document.getElementById('step2').classList.toggle('hidden', currentStep !== 2);
+            document.getElementById('step3').classList.toggle('hidden', currentStep !== 3);
+            
+            document.getElementById('progressBar').style.width = `${(currentStep / 3) * 100}%`;
+            document.getElementById('stepIndicator').textContent = `${currentStep}/3`;
+        }
+
+        function showResults() {
+            const filtered = filterProducts();
+            renderResults(filtered);
+            document.getElementById('filterSteps').classList.add('hidden');
+            document.getElementById('resultsView').classList.remove('hidden');
+        }
+
+        // 随机打乱数组
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function filterProducts() {
+            return products.filter(product => {
+                // Skin type filter
+                if (filters.skinType && !product.skinTypes.some(st => 
+                    st === filters.skinType || st === '所有肤质' || st === '敏感肌'
+                )) {
+                    return false;
+                }
+                
+                // Benefits filter
+                if (filters.benefits.length > 0) {
+                    const hasMatchingBenefit = filters.benefits.some(benefit =>
+                        product.benefits.includes(benefit)
+                    );
+                    if (!hasMatchingBenefit) return false;
+                }
+                
+                // Price category filter
+                if (filters.priceCategory && product.priceCategory !== filters.priceCategory) {
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+
+        function renderResults(filteredProducts) {
+            const container = document.getElementById('productList');
+            
+            if (filteredProducts.length === 0) {
+                document.getElementById('resultCount').textContent = '0';
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <p class="text-gray-500 text-lg mb-2">😢</p>
+                        <p class="text-gray-500 text-lg">没有找到符合条件的产品</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 随机打乱并取最多3个产品
+            const shuffledProducts = shuffleArray(filteredProducts);
+            const displayProducts = shuffledProducts.slice(0, 3);
+            document.getElementById('resultCount').textContent = displayProducts.length;
+            
+            container.innerHTML = displayProducts.map(product => `
+                <div class="product-card bg-white border border-gray-300 rounded-lg p-5 shadow-sm">
+                    <div class="flex items-start justify-between mb-3">
+                        <h3 class="text-lg font-bold text-gray-900 flex-1">${product.name}</h3>
+                        <span class="text-xs text-gray-500 border border-gray-300 px-2 py-1 rounded ml-2 whitespace-nowrap">${product.priceCategory}</span>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        ${product.benefits.map(b => `
+                            <span class="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs rounded-md border border-gray-200">${b}</span>
+                        `).join('')}
+                    </div>
+                    
+                    <p class="text-gray-700 text-base mb-4 leading-relaxed">"${product.description}"</p>
+                    
+                    <div class="pt-3 border-t border-gray-200">
+                        <span class="text-base font-semibold text-gray-900">${product.priceRange}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function backToFilter() {
+            document.getElementById('filterSteps').classList.remove('hidden');
+            document.getElementById('resultsView').classList.add('hidden');
+        }
+
+        function resetFilter() {
+            filters.skinType = null;
+            filters.benefits = [];
+            filters.priceCategory = null;
+            currentStep = 1;
+            updateStepDisplay();
+            
+            // Reset all UI
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.classList.remove('border-gray-900', 'bg-gray-50');
+                btn.querySelector('.check-icon').classList.add('hidden');
+            });
+            
+            document.getElementById('nextBtn1').disabled = true;
+            document.getElementById('nextBtn2').disabled = true;
+            
+            backToFilter();
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+
+    <script>
+        const PRODUCTS_DATA = [
+  // 学生党
+  {
+    id: '1',
+    name: '倩碧黄油无油版',
+    category: '面霜',
+    skinTypes: ["油皮", "混合肌"],
+    benefits: ["保湿补水", "修护"],
+    priceRange: '¥298/2瓶',
+    priceCategory: '学生党',
+    description: '简单养好底子,一瓶搞定护肤',
+    keywords: ["简单养好底子,一瓶搞定护肤"]
+  },
+  {
+    id: '2',
+    name: '优色林舒安霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["补水保湿", "修护舒缓"],
+    priceRange: '¥199/2支以上',
+    priceCategory: '学生党',
+    description: '大厂出品,温和修护',
+    keywords: ["大厂出品,温和修护"]
+  },
+  {
+    id: '3',
+    name: '完美日记仿生膜精华面霜',
+    category: '面霜',
+    skinTypes: ["干皮", "油皮"],
+    benefits: ["妆前面霜", "补水保湿"],
+    priceRange: '¥299/2瓶',
+    priceCategory: '学生党',
+    description: '超级贴肤的妆前霜,更适合冬天',
+    keywords: ["超级贴肤的妆前霜,更适合冬天"]
+  },
+  {
+    id: '4',
+    name: '小娇韵诗O椰高保湿焕亮水光霜',
+    category: '面霜',
+    skinTypes: ["所有肤质"],
+    benefits: ["保湿补水", "美白提亮"],
+    priceRange: '¥250/2瓶',
+    priceCategory: '学生党',
+    description: '补水锁水,长效保湿,焕亮肌肤',
+    keywords: ["补水锁水,长效保湿,焕亮肌肤"]
+  },
+  {
+    id: '5',
+    name: '珂润保湿乳霜',
+    category: '面霜',
+    skinTypes: ["干皮", "干敏皮"],
+    benefits: ["补水保湿", "修护舒缓"],
+    priceRange: '¥349/2罐',
+    priceCategory: '学生党',
+    description: '成分干净无负担，年轻肌推荐',
+    keywords: ["成分干净无负担", "年轻肌推荐"]
+  },
+  {
+    id: '6',
+    name: '丝塔芙四维面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["补水保湿", "修护舒缓", "修红"],
+    priceRange: '¥190/2支',
+    priceCategory: '学生党',
+    description: '快速舒缓干燥泛红',
+    keywords: ["快速舒缓干燥泛红"]
+  },
+  {
+    id: '7',
+    name: '欧莱雅20霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["抗皱紧致", "保湿补水", "修护舒缓"],
+    priceRange: '¥329/瓶',
+    priceCategory: '学生党',
+    description: '初次尝试玻色因，适合爱熬夜的年轻肌肤',
+    keywords: ["初次尝试玻色因", "适合爱熬夜的年轻肌肤"]
+  },
+  {
+    id: '8',
+    name: '理肤泉B5修复霜',
+    category: '面霜',
+    skinTypes: ["干皮", "油皮", "干敏皮", "油敏皮"],
+    benefits: ["保湿补水", "修护舒缓", "急救"],
+    priceRange: '¥109/2支',
+    priceCategory: '学生党',
+    description: '可贴片面膜，封闭性强',
+    keywords: ["可贴片面膜", "封闭性强"]
+  },
+  // 质价比
+  {
+    id: '9',
+    name: '优时颜黑引力面霜轻盈版',
+    category: '面霜',
+    skinTypes: ["油皮"],
+    benefits: ["抗皱紧致", "焕活胶原"],
+    priceRange: '¥259/套',
+    priceCategory: '质价比',
+    description: '肤感无敌好用，半哑光质地',
+    keywords: ["肤感无敌好用", "半哑光质地"]
+  },
+  {
+    id: '10',
+    name: '夸迪CT50超弹霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["抗皱紧致", "保湿补水"],
+    priceRange: '¥239/瓶',
+    priceCategory: '质价比',
+    description: '改善松弛，增强弹力',
+    keywords: ["改善松弛", "增强弹力"]
+  },
+  {
+    id: '11',
+    name: '薇诺娜特护霜',
+    category: '面霜',
+    skinTypes: ["干敏", "油敏"],
+    benefits: ["补水保湿", "修护舒缓", "急救"],
+    priceRange: '¥227/支',
+    priceCategory: '质价比',
+    description: '晒后、熬夜、换季敏感',
+    keywords: ["晒后、熬夜、换季敏感"]
+  },
+  {
+    id: '12',
+    name: '科颜氏高保湿面霜',
+    category: '面霜',
+    skinTypes: ["干皮"],
+    benefits: ["补水保湿", "修护舒缓"],
+    priceRange: '¥350/瓶',
+    priceCategory: '质价比',
+    description: '冬日保湿，干皮冲',
+    keywords: ["冬日保湿", "干皮冲"]
+  },
+  {
+    id: '13',
+    name: 'On top润养修护油霜',
+    category: '面霜',
+    skinTypes: ["干皮"],
+    benefits: ["补水保湿", "修护舒缓", "强韧屏障"],
+    priceRange: '¥388/2瓶',
+    priceCategory: '质价比',
+    description: '高浓度油脂，熟龄肌推荐',
+    keywords: ["高浓度油脂", "熟龄肌推荐"]
+  },
+  {
+    id: '14',
+    name: 'OLAY全新第五代超红瓶滋润版',
+    category: '面霜',
+    skinTypes: ["干皮", "混和皮", "干敏皮"],
+    benefits: ["抗皱紧致", "补水保湿"],
+    priceRange: '¥309/瓶',
+    priceCategory: '质价比',
+    description: '多链路抗老,每年越卖越多',
+    keywords: ["多链路抗老,每年越卖越多"]
+  },
+  {
+    id: '15',
+    name: 'OLAY全新第五代超红瓶轻润版',
+    category: '面霜',
+    skinTypes: ["油皮", "混合皮", "油敏皮"],
+    benefits: ["抗皱紧致", "补水保湿"],
+    priceRange: '¥309/瓶',
+    priceCategory: '质价比',
+    description: '多链路抗老,每年越卖越多',
+    keywords: ["多链路抗老,每年越卖越多"]
+  },
+  {
+    id: '16',
+    name: '韩束x肽赋活丰盈紧塑轻盈霜',
+    category: '面霜',
+    skinTypes: ["油皮", "油敏皮"],
+    benefits: ["抗皱紧致", "补水保湿", "修护舒缓"],
+    priceRange: '¥499/2瓶',
+    priceCategory: '质价比',
+    description: '多链路抗皱保湿，修护淡纹',
+    keywords: ["多链路抗皱保湿", "修护淡纹"]
+  },
+  {
+    id: '17',
+    name: '珀莱雅红宝石面霜轻盈版',
+    category: '面霜',
+    skinTypes: ["油皮", "干皮", "混合皮"],
+    benefits: ["抗皱紧致", "保湿补水", "温和抗老"],
+    priceRange: '¥279/瓶',
+    priceCategory: '质价比',
+    description: '百万单品,口碑爆款',
+    keywords: ["百万单品,口碑爆款"]
+  },
+  {
+    id: '18',
+    name: '欧莱雅小蜜罐滋润版',
+    category: '面霜',
+    skinTypes: ["干皮", "干敏皮"],
+    benefits: ["补水保湿", "抗皱紧致", "修护舒缓"],
+    priceRange: '¥579/2件',
+    priceCategory: '质价比',
+    description: '滋润肌肤、稳固屏障',
+    keywords: ["滋润肌肤、稳固屏障"]
+  },
+  {
+    id: '19',
+    name: '欧珀莱黑精灵面霜',
+    category: '面霜',
+    skinTypes: ["干皮", "油皮"],
+    benefits: ["补水保湿", "抗皱紧致", "修护舒缓"],
+    priceRange: '¥350/2件',
+    priceCategory: '质价比',
+    description: '内修肌底，外修屏障',
+    keywords: ["内修肌底", "外修屏障"]
+  },
+  {
+    id: '20',
+    name: '瑷科缦白月光面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["抗皱紧致", "美白提亮", "保湿补水"],
+    priceRange: '¥509/2件',
+    priceCategory: '质价比',
+    description: '多面美白，一套搞定',
+    keywords: ["多面美白", "一套搞定"]
+  },
+  {
+    id: '21',
+    name: '珀莱雅源力面霜',
+    category: '面霜',
+    skinTypes: ["混合皮", "干皮油皮"],
+    benefits: ["抗皱紧致", "修护舒缓", "保湿补水"],
+    priceRange: '¥234/瓶',
+    priceCategory: '质价比',
+    description: '痘肌修复，改善泛红干燥',
+    keywords: ["痘肌修复", "改善泛红干燥"]
+  },
+  {
+    id: '22',
+    name: '瑷科缦绿安缦',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["抗皱紧致", "补水保湿", "修护舒缓"],
+    priceRange: '¥499/2瓶',
+    priceCategory: '质价比',
+    description: '边修边抗皱，温和抗皱',
+    keywords: ["边修边抗皱", "温和抗皱"]
+  },
+  {
+    id: '23',
+    name: '百雀羚灵玉面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["抗皱紧致", "美白提亮", "保湿补水"],
+    priceRange: '¥279/罐',
+    priceCategory: '质价比',
+    description: '养出好底子，新品王者',
+    keywords: ["养出好底子", "新品王者"]
+  },
+  {
+    id: '24',
+    name: '可复美重组胶原蛋白焦点面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质"],
+    benefits: ["补水保湿", "美白提亮", "修护舒缓", "抗皱紧致"],
+    priceRange: '¥359/件',
+    priceCategory: '质价比',
+    description: '多效合一',
+    keywords: ["多效合一"]
+  },
+  // 进阶款
+  {
+    id: '25',
+    name: '资生堂悦薇智感紧弹亮乳霜',
+    category: '面霜',
+    skinTypes: ["干皮", "油皮"],
+    benefits: ["抗皱紧致", "美白提亮", "保湿补水"],
+    priceRange: '¥980/支',
+    priceCategory: '进阶款',
+    description: '淡化纹路，美白淡斑',
+    keywords: ["淡化纹路", "美白淡斑"]
+  },
+  {
+    id: '26',
+    name: '薇诺娜凝时塑颜丰盈精华霜（银核霜）',
+    category: '面霜',
+    skinTypes: ["干皮", "干敏皮", "油敏皮"],
+    benefits: ["抗皱紧致", "补水保湿", "修护舒缓"],
+    priceRange: '¥379/套',
+    priceCategory: '进阶款',
+    description: '改善干燥泛红，非特殊美容项目后可用',
+    keywords: ["改善干燥泛红", "非特殊美容项目后可用"]
+  },
+  {
+    id: '27',
+    name: '娇韵诗弹力面霜',
+    category: '面霜',
+    skinTypes: ["干皮", "油皮"],
+    benefits: ["抗皱紧致", "保湿补水"],
+    priceRange: '¥880/瓶',
+    priceCategory: '进阶款',
+    description: '配合娇韵诗双萃精华，肌肤紧致弹嫩',
+    keywords: ["配合娇韵诗双萃精华", "肌肤紧致弹嫩"]
+  },
+  {
+    id: '28',
+    name: '羽西鎏金面霜',
+    category: '面霜',
+    skinTypes: ["干皮", "油皮"],
+    benefits: ["抗皱紧致", "保湿补水", "紧致弹嫩"],
+    priceRange: '¥399/瓶',
+    priceCategory: '进阶款',
+    description: '特别21%玻色因，适合熟龄肌',
+    keywords: ["特别21%玻色因", "适合熟龄肌"]
+  },
+  {
+    id: '29',
+    name: '雅诗兰黛胶原霜乳霜款',
+    category: '面霜',
+    skinTypes: ["油皮", "轻熟肌"],
+    benefits: ["抗皱紧致", "保湿补水"],
+    priceRange: '¥930/瓶',
+    priceCategory: '进阶款',
+    description: '焕活胶原，夜间密集护理',
+    keywords: ["焕活胶原", "夜间密集护理"]
+  },
+  {
+    id: '30',
+    name: '雅诗兰黛胶原霜滋润款',
+    category: '面霜',
+    skinTypes: ["干皮", "轻熟肌"],
+    benefits: ["抗皱紧致", "保湿补水"],
+    priceRange: '¥930/瓶',
+    priceCategory: '进阶款',
+    description: '焕活胶原，夜间密集护理',
+    keywords: ["焕活胶原", "夜间密集护理"]
+  },
+  {
+    id: '31',
+    name: '资生堂盼丽风姿面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质"],
+    benefits: ["抗皱紧致", "保湿补水", "淡纹"],
+    priceRange: '¥675/2瓶',
+    priceCategory: '进阶款',
+    description: '专研淡纹技术，熟龄肌推荐',
+    keywords: ["专研淡纹技术", "熟龄肌推荐"]
+  },
+  {
+    id: '32',
+    name: '双妹玉容霜',
+    category: '面霜',
+    skinTypes: ["干皮", "干敏皮"],
+    benefits: ["抗皱紧致", "美白提亮"],
+    priceRange: '¥699/罐',
+    priceCategory: '进阶款',
+    description: '国货顶尖技术，适合熟龄肌',
+    keywords: ["国货顶尖技术", "适合熟龄肌"]
+  },
+  {
+    id: '33',
+    name: 'cpb钻光夜霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["抗皱紧致", "美白提亮", "保湿补水"],
+    priceRange: '¥1110/瓶',
+    priceCategory: '进阶款',
+    description: '根源抑黑，肌肤细腻透亮',
+    keywords: ["根源抑黑", "肌肤细腻透亮"]
+  },
+  {
+    id: '34',
+    name: '兰蔻塑颜紧致霜',
+    category: '面霜',
+    skinTypes: ["所有肤质"],
+    benefits: ["抗皱紧致", "保湿补水", "美白提亮"],
+    priceRange: '¥950/件',
+    priceCategory: '进阶款',
+    description: '保护胶原、紧致淡纹',
+    keywords: ["保护胶原、紧致淡纹"]
+  },
+  {
+    id: '35',
+    name: '理肤泉新赋活修护面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["抗皱紧致", "保湿补水", "修护舒缓", "美白提亮"],
+    priceRange: '¥600/2瓶',
+    priceCategory: '进阶款',
+    description: '尤其适合敏感肌',
+    keywords: ["尤其适合敏感肌"]
+  },
+  // 贵妇姐姐
+  {
+    id: '36',
+    name: 'Sisley全能乳液',
+    category: '面霜',
+    skinTypes: ["所有肤质"],
+    benefits: ["补水保湿"],
+    priceRange: '¥2000/瓶',
+    priceCategory: '贵妇姐姐',
+    description: '多和一',
+    keywords: ["多和一"]
+  },
+  {
+    id: '37',
+    name: 'Fresh古源面霜',
+    category: '面霜',
+    skinTypes: ["干皮", "干敏皮"],
+    benefits: ["保湿补水", "抗皱紧致", "滋养"],
+    priceRange: '¥1560/2罐',
+    priceCategory: '贵妇姐姐',
+    description: '高浓度油脂，质地厚实',
+    keywords: ["高浓度油脂", "质地厚实"]
+  },
+  {
+    id: '38',
+    name: '兰蔻菁纯面霜',
+    category: '面霜',
+    skinTypes: ["干皮", "干敏皮"],
+    benefits: ["抗皱紧致", "美白提亮"],
+    priceRange: '¥2770/套',
+    priceCategory: '贵妇姐姐',
+    description: '弹嫩焕亮，适合大干皮',
+    keywords: ["弹嫩焕亮", "适合大干皮"]
+  },
+  {
+    id: '39',
+    name: '修丽可Age面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌"],
+    benefits: ["抗皱紧致", "保湿补水"],
+    priceRange: '¥1770/罐',
+    priceCategory: '贵妇姐姐',
+    description: '玻色因30%，抑制因糖化引起的胶原流失',
+    keywords: ["玻色因30%", "抑制因糖化引起的胶原流失"]
+  },
+  {
+    id: '40',
+    name: '赫莲娜黑绷带面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质", "敏感肌", "熟龄肌"],
+    benefits: ["抗皱紧致", "舒缓修复", "保湿补水"],
+    priceRange: '¥3980/50ml',
+    priceCategory: '贵妇姐姐',
+    description: '玻色因50%，边修边抗皱',
+    keywords: ["玻色因50%", "边修边抗皱"]
+  },
+  {
+    id: '41',
+    name: 'SK2大红瓶面霜',
+    category: '面霜',
+    skinTypes: ["干皮", "干敏皮"],
+    benefits: ["抗皱紧致", "保湿补水", "修护舒缓"],
+    priceRange: '¥1670/瓶',
+    priceCategory: '贵妇姐姐',
+    description: '适合偏干瘪肌肤，细腻紧致',
+    keywords: ["适合偏干瘪肌肤", "细腻紧致"]
+  },
+  {
+    id: '42',
+    name: 'Lamer海蓝之谜奇迹面霜',
+    category: '面霜',
+    skinTypes: ["干皮", "油敏皮", "干敏皮"],
+    benefits: ["抗皱紧致", "保湿补水", "修护舒缓"],
+    priceRange: '¥1840/瓶',
+    priceCategory: '贵妇姐姐',
+    description: '适合大干皮',
+    keywords: ["适合大干皮"]
+  },
+  {
+    id: '43',
+    name: 'Lamer海蓝之谜云绒霜',
+    category: '面霜',
+    skinTypes: ["油敏皮", "油皮", "混合皮"],
+    benefits: ["抗皱紧致", "保湿补水", "修护舒缓"],
+    priceRange: '¥1840/瓶',
+    priceCategory: '贵妇姐姐',
+    description: '大牌抗皱，层层淡化细纹',
+    keywords: ["大牌抗皱", "层层淡化细纹"]
+  },
+  {
+    id: '44',
+    name: '娇兰兰花御龄面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质"],
+    benefits: ["焕活胶原", "抗皱紧致", "保湿补水", "美白提亮"],
+    priceRange: '¥4220/件',
+    priceCategory: '贵妇姐姐',
+    description: '万代兰成分，焕醒肌肤活力',
+    keywords: ["万代兰成分", "焕醒肌肤活力"]
+  },
+  {
+    id: '45',
+    name: '科兰黎雪藻面霜轻盈版',
+    category: '面霜',
+    skinTypes: ["干皮"],
+    benefits: ["抗皱紧致", "美白提亮", "保湿补水"],
+    priceRange: '¥1880/瓶',
+    priceCategory: '贵妇姐姐',
+    description: '让肌肤又软又嫩',
+    keywords: ["让肌肤又软又嫩"]
+  },
+  {
+    id: '46',
+    name: '科兰黎雪藻面霜滋润版',
+    category: '面霜',
+    skinTypes: ["油皮"],
+    benefits: ["抗皱紧致", "美白提亮", "保湿补水"],
+    priceRange: '¥1880/瓶',
+    priceCategory: '贵妇姐姐',
+    description: '让肌肤又软又嫩',
+    keywords: ["让肌肤又软又嫩"]
+  },
+  {
+    id: '47',
+    name: '娇兰蜜护日晚霜',
+    category: '面霜',
+    skinTypes: ["干皮", "油皮"],
+    benefits: ["抗皱紧致", "修护舒缓", "美白提亮", "补水保湿"],
+    priceRange: '¥2950/套',
+    priceCategory: '贵妇姐姐',
+    description: '防止胶原流失、密集修复',
+    keywords: ["防止胶原流失、密集修复"]
+  },
+  {
+    id: '48',
+    name: '雅诗兰黛白金黑钻面霜',
+    category: '面霜',
+    skinTypes: ["所有肤质"],
+    benefits: ["抗皱紧致", "美白提亮", "修护舒缓", "补水保湿"],
+    priceRange: '¥1820/瓶',
+    priceCategory: '贵妇姐姐',
+    description: '原料炒鸡贵',
+    keywords: ["原料炒鸡贵"]
+  }
+];
+    </script>
+    
+</body>
+</html>

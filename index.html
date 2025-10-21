@@ -18,10 +18,12 @@
         }
         .product-card {
             transition: all 0.2s ease;
+            cursor: pointer;
         }
         .product-card:hover {
             border-color: #374151;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
         }
     </style>
 </head>
@@ -320,7 +322,7 @@
             document.getElementById('resultCount').textContent = displayProducts.length;
             
             container.innerHTML = displayProducts.map(product => `
-                <div class="product-card bg-white border border-gray-300 rounded-lg p-5 shadow-sm">
+                <div class="product-card bg-white border border-gray-300 rounded-lg p-5 shadow-sm" onclick="openTaobao('${product.name.replace(/'/g, "\\'")}', ${product.taobaoLink ? `'${product.taobaoLink}'` : 'null'})">
                     <div class="flex items-start justify-between mb-3">
                         <h3 class="text-lg font-bold text-gray-900 flex-1">${product.name}</h3>
                         <span class="text-xs text-gray-500 border border-gray-300 px-2 py-1 rounded ml-2 whitespace-nowrap">${product.priceCategory}</span>
@@ -334,11 +336,41 @@
                     
                     <p class="text-gray-700 text-base mb-4 leading-relaxed">"${product.description}"</p>
                     
-                    <div class="pt-3 border-t border-gray-200">
+                    <div class="pt-3 border-t border-gray-200 flex items-center justify-between">
                         <span class="text-base font-semibold text-gray-900">${product.priceRange}</span>
+                        <span class="text-xs text-gray-500">点击查看详情 →</span>
                     </div>
                 </div>
             `).join('');
+        }
+
+        function openTaobao(productName, taobaoLink) {
+            // 如果产品有淘宝联盟链接，直接跳转
+            if (taobaoLink) {
+                window.open(taobaoLink, '_blank');
+                return;
+            }
+            
+            // 否则使用淘宝搜索
+            // 淘宝搜索链接格式
+            const searchUrl = `https://s.taobao.com/search?q=${encodeURIComponent(productName)}`;
+            
+            // 尝试打开淘宝 App（移动端）或网页版（桌面端）
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // 移动端：尝试打开淘宝 App，如果失败则打开网页
+                const taobaoAppUrl = `taobao://s.taobao.com/search?q=${encodeURIComponent(productName)}`;
+                window.location.href = taobaoAppUrl;
+                
+                // 延迟跳转网页版作为备选
+                setTimeout(() => {
+                    window.open(searchUrl, '_blank');
+                }, 1500);
+            } else {
+                // 桌面端：直接打开淘宝网页
+                window.open(searchUrl, '_blank');
+            }
         }
 
         function backToFilter() {

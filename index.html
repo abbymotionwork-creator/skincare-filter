@@ -31,6 +31,17 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+        .loading-skeleton {
+            animation: shimmer 1.5s infinite;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -347,25 +358,31 @@
             const displayProducts = shuffledProducts.slice(0, 3);
             document.getElementById('resultCount').textContent = displayProducts.length;
             
+            // 预加载图片
+            displayProducts.forEach(product => {
+                if (product.imageUrl) {
+                    const img = new Image();
+                    img.src = product.imageUrl;
+                }
+            });
+            
             container.innerHTML = displayProducts.map(product => `
                 <div class="product-card bg-white border border-gray-300 rounded-lg p-4 shadow-sm" onclick="openTaobao('${product.name.replace(/'/g, "\\'")}', ${product.taobaoLink ? `'${product.taobaoLink}'` : 'null'})">
                     <div class="flex gap-4">
                         <!-- 产品图片 -->
                         <div class="flex-shrink-0">
-                            <div class="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                <img src="${product.imageUrl || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%239ca3af%22 font-size=%2212%22%3E${product.name.substring(0,4)}%3C/text%3E%3C/svg%3E'}" 
+                            <div class="w-24 h-24 rounded-lg overflow-hidden border border-gray-200 relative bg-gray-100">
+                                <img src="${product.imageUrl || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E'}" 
                                      alt="${product.name}"
                                      class="w-full h-full object-cover"
-                                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%239ca3af%22 font-size=%2212%22%3E${product.name.substring(0,4)}%3C/text%3E%3C/svg%3E'">
+                                     loading="lazy"
+                                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E'">
                             </div>
                         </div>
                         
                         <!-- 产品信息 -->
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-start justify-between mb-2">
-                                <h3 class="text-base font-bold text-gray-900 flex-1 line-clamp-2">${product.name}</h3>
-                                <span class="text-xs text-gray-500 border border-gray-300 px-2 py-1 rounded ml-2 whitespace-nowrap flex-shrink-0">${product.priceCategory}</span>
-                            </div>
+                            <h3 class="text-base font-bold text-gray-900 mb-2 line-clamp-2">${product.name}</h3>
                             
                             <div class="flex flex-wrap gap-1.5 mb-3">
                                 ${product.benefits.map(b => `
@@ -376,7 +393,15 @@
                             <p class="text-gray-600 text-sm mb-3 leading-relaxed line-clamp-2">"${product.description}"</p>
                             
                             <div class="pt-2 border-t border-gray-200 flex items-center justify-between">
-                                <span class="text-sm font-semibold text-gray-900">${product.priceRange}</span>
+                                <span class="text-sm font-semibold">
+                                    ${(() => {
+                                        const match = product.priceRange.match(/^([¥\d\-,]+)(.*)/);
+                                        if (match) {
+                                            return `<span style="color: #C80000; font-size: 1.125rem;">${match[1]}</span><span style="color: #C80000;">${match[2]}</span>`;
+                                        }
+                                        return `<span style="color: #C80000;">${product.priceRange}</span>`;
+                                    })()}
+                                </span>
                                 <span class="text-xs text-gray-500">点击查看详情 →</span>
                             </div>
                         </div>
@@ -455,7 +480,8 @@
     priceCategory: '学生党',
     description: '简单养好底子,一瓶搞定护肤',
     keywords: ["简单养好底子,一瓶搞定护肤"],
-    taobaoLink: 'https://m.tb.cn/h.SQtGqyk' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQtGqyk',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/1.webp'
   },
   {
     id: '2',
@@ -467,7 +493,8 @@
     priceCategory: '学生党',
     description: '大厂出品,温和修护',
     keywords: ["大厂出品,温和修护"],
-  taobaoLink: 'https://m.tb.cn/h.SQTbSAs' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQTbSAs',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/2.webp'
   },
   {
     id: '3',
@@ -479,7 +506,8 @@
     priceCategory: '学生党',
     description: '超级贴肤的妆前霜,更适合冬天',
     keywords: ["超级贴肤的妆前霜,更适合冬天"],
-  taobaoLink: 'https://m.tb.cn/h.SQupduW' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQupduW',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/3.webp'
   },
   {
     id: '4',
@@ -491,7 +519,8 @@
     priceCategory: '学生党',
     description: '补水锁水,长效保湿,焕亮肌肤',
     keywords: ["补水锁水,长效保湿,焕亮肌肤"],
-  taobaoLink: 'https://m.tb.cn/h.SQgzhJc' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQgzhJc',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/4.webp'
   },
   {
     id: '5',
@@ -503,7 +532,8 @@
     priceCategory: '学生党',
     description: '成分干净无负担，年轻肌推荐',
     keywords: ["成分干净无负担", "年轻肌推荐"],
-  taobaoLink: 'https://m.tb.cn/h.SQGeHo5' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQGeHo5',
+    imageUrl: 'https://i.ibb.co/s9BH179F/5-75976370142566810-png-20251022124302.png'
   },
   {
     id: '6',
@@ -515,7 +545,8 @@
     priceCategory: '学生党',
     description: '快速舒缓干燥泛红',
     keywords: ["快速舒缓干燥泛红"],
-  taobaoLink: 'https://m.tb.cn/h.SQKefmy' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQKefmy',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/6.webp'
   },
   {
     id: '7',
@@ -527,7 +558,8 @@
     priceCategory: '学生党',
     description: '初次尝试玻色因，适合爱熬夜的年轻肌肤',
     keywords: ["初次尝试玻色因", "适合爱熬夜的年轻肌肤"],
-  taobaoLink: 'https://m.tb.cn/h.SQTdnDh' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQTdnDh',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/7.webp'
   },
   {
     id: '8',
@@ -539,7 +571,8 @@
     priceCategory: '学生党',
     description: '可贴片面膜，封闭性强',
     keywords: ["可贴片面膜", "封闭性强"],
-  taobaoLink: 'https://m.tb.cn/h.SQgpozy' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQgpozy',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/8.webp'
   },
   // 质价比
   {
@@ -552,7 +585,8 @@
     priceCategory: '质价比',
     description: '肤感无敌好用，半哑光质地',
     keywords: ["肤感无敌好用", "半哑光质地"],
-  taobaoLink: 'https://m.tb.cn/h.SQuuzPx' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQuuzPx',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/9.webp'
   },
   {
     id: '10',
@@ -564,7 +598,8 @@
     priceCategory: '质价比',
     description: '改善松弛，增强弹力',
     keywords: ["改善松弛", "增强弹力"],
-  taobaoLink: 'https://m.tb.cn/h.SQKjcp5' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQKjcp5',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/10.webp'
   },
   {
     id: '11',
@@ -576,7 +611,8 @@
     priceCategory: '质价比',
     description: '晒后、熬夜、换季敏感',
     keywords: ["晒后、熬夜、换季敏感"],
-  taobaoLink: 'https://m.tb.cn/h.SQGUDcy' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQGUDcy',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/11.webp'
   },
   {
     id: '12',
@@ -588,7 +624,8 @@
     priceCategory: '质价比',
     description: '冬日保湿，干皮冲',
     keywords: ["冬日保湿", "干皮冲"],
-  taobaoLink: 'https://m.tb.cn/h.SQTSKwC' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQTSKwC',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/12.webp'
   },
   {
     id: '13',
@@ -600,7 +637,8 @@
     priceCategory: '质价比',
     description: '高浓度油脂，熟龄肌推荐',
     keywords: ["高浓度油脂", "熟龄肌推荐"],
-  taobaoLink: 'https://m.tb.cn/h.SQFZzq6' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQFZzq6',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/13.webp'
   },
   {
     id: '14',
@@ -612,7 +650,8 @@
     priceCategory: '质价比',
     description: '多链路抗老,每年越卖越多',
     keywords: ["多链路抗老,每年越卖越多"],
-  taobaoLink: 'https://m.tb.cn/h.SQLqPpt' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQLqPpt',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/14.webp'
   },
   {
     id: '15',
@@ -624,7 +663,8 @@
     priceCategory: '质价比',
     description: '多链路抗老,每年越卖越多',
     keywords: ["多链路抗老,每年越卖越多"],
-  taobaoLink: 'https://m.tb.cn/h.SQLqPpt' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQLqPpt',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/15.webp'
   },
   {
     id: '16',
@@ -636,7 +676,8 @@
     priceCategory: '质价比',
     description: '多链路抗皱保湿，修护淡纹',
     keywords: ["多链路抗皱保湿", "修护淡纹"],
-  taobaoLink: 'https://m.tb.cn/h.SQKg2Xs' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQKg2Xs',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/16.webp'
   },
   {
     id: '17',
@@ -648,7 +689,8 @@
     priceCategory: '质价比',
     description: '百万单品,口碑爆款',
     keywords: ["百万单品,口碑爆款"],
-  taobaoLink: 'https://m.tb.cn/h.S9kRfYE' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.S9kRfYE',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/17.webp'
   },
   {
     id: '18',
@@ -660,7 +702,8 @@
     priceCategory: '质价比',
     description: '滋润肌肤、稳固屏障',
     keywords: ["滋润肌肤、稳固屏障"],
-  taobaoLink: 'https://m.tb.cn/h.S9kmDR4' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.S9kmDR4',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/18.webp'
   },
   {
     id: '19',
@@ -672,7 +715,8 @@
     priceCategory: '质价比',
     description: '内修肌底，外修屏障',
     keywords: ["内修肌底", "外修屏障"],
-  taobaoLink: 'https://m.tb.cn/h.S9lSKkh' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.S9lSKkh',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/19.webp'
   },
   {
     id: '20',
@@ -684,7 +728,8 @@
     priceCategory: '质价比',
     description: '多面美白，一套搞定',
     keywords: ["多面美白", "一套搞定"],
-  taobaoLink: 'https://m.tb.cn/h.SQuDP4h' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQuDP4h',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/20.webp'
   },
   {
     id: '21',
@@ -696,7 +741,8 @@
     priceCategory: '质价比',
     description: '痘肌修复，改善泛红干燥',
     keywords: ["痘肌修复", "改善泛红干燥"],
-  taobaoLink: 'https://m.tb.cn/h.SQGcRXP' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQGcRXP',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/21.webp'
   },
   {
     id: '22',
@@ -708,7 +754,8 @@
     priceCategory: '质价比',
     description: '边修边抗皱，温和抗皱',
     keywords: ["边修边抗皱", "温和抗皱"],
-  taobaoLink: 'https://m.tb.cn/h.SQTg2zr' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQTg2zr',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/22.webp'
   },
   {
     id: '23',
@@ -720,7 +767,8 @@
     priceCategory: '质价比',
     description: '养出好底子，新品王者',
     keywords: ["养出好底子", "新品王者"],
-  taobaoLink: 'https://m.tb.cn/h.S9l8wmx' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.S9l8wmx',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/23.webp'
   },
   {
     id: '24',
@@ -730,9 +778,10 @@
     benefits: ["补水保湿", "美白提亮", "修护舒缓", "抗皱紧致"],
     priceRange: '¥359/件',
     priceCategory: '质价比',
-    description: '多效合一',
+    description: '多效合一，非破皮美容后可用',
     keywords: ["多效合一"],
-  taobaoLink: 'https://m.tb.cn/h.SQKKBSu' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQKKBSu',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/24.webp'
   },
   // 进阶款
   {
@@ -743,9 +792,10 @@
     benefits: ["抗皱紧致", "美白提亮", "保湿补水"],
     priceRange: '¥980/支',
     priceCategory: '进阶款',
-    description: '淡化纹路，美白淡斑',
+    description: '淡化纹路，美白淡斑，日系爆品',
     keywords: ["淡化纹路", "美白淡斑"],
-  taobaoLink: 'https://m.tb.cn/h.SQuX1Vb' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQuX1Vb',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/25.webp'
   },
   {
     id: '26',
@@ -757,7 +807,8 @@
     priceCategory: '进阶款',
     description: '改善干燥泛红，非特殊美容项目后可用',
     keywords: ["改善干燥泛红", "非特殊美容项目后可用"],
-  taobaoLink: 'https://m.tb.cn/h.SQFf6gs' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQFf6gs',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/26.webp'
   },
   {
     id: '27',
@@ -769,7 +820,8 @@
     priceCategory: '进阶款',
     description: '配合娇韵诗双萃精华，肌肤紧致弹嫩',
     keywords: ["配合娇韵诗双萃精华", "肌肤紧致弹嫩"],
-  taobaoLink: 'https://m.tb.cn/h.SQgxdpU' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQgxdpU',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/27.webp'
   },
   {
     id: '28',
@@ -781,7 +833,8 @@
     priceCategory: '进阶款',
     description: '特别21%玻色因，适合熟龄肌',
     keywords: ["特别21%玻色因", "适合熟龄肌"],
-  taobaoLink: 'https://m.tb.cn/h.S9PoELg' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.S9PoELg',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/28.webp'
   },
   {
     id: '29',
@@ -793,7 +846,8 @@
     priceCategory: '进阶款',
     description: '焕活胶原，夜间密集护理',
     keywords: ["焕活胶原", "夜间密集护理"],
-  taobaoLink: 'https://m.tb.cn/h.S9krVgb' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.S9krVgb',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/29.webp'
   },
   {
     id: '30',
@@ -805,7 +859,8 @@
     priceCategory: '进阶款',
     description: '焕活胶原，夜间密集护理',
     keywords: ["焕活胶原", "夜间密集护理"],
-  taobaoLink: 'https://m.tb.cn/h.S9krVgb' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.S9krVgb',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/30.webp'
   },
   {
     id: '31',
@@ -817,7 +872,8 @@
     priceCategory: '进阶款',
     description: '专研淡纹技术，熟龄肌推荐',
     keywords: ["专研淡纹技术", "熟龄肌推荐"],
-  taobaoLink: 'https://m.tb.cn/h.SQgMhYq' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQgMhYq',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/31.webp'
   },
   {
     id: '32',
@@ -829,7 +885,8 @@
     priceCategory: '进阶款',
     description: '国货顶尖技术，适合熟龄肌',
     keywords: ["国货顶尖技术", "适合熟龄肌"],
-  taobaoLink: 'https://m.tb.cn/h.SQuVoA8' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQuVoA8',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/32.webp'
   },
   {
     id: '33',
@@ -841,7 +898,8 @@
     priceCategory: '进阶款',
     description: '根源抑黑，肌肤细腻透亮',
     keywords: ["根源抑黑", "肌肤细腻透亮"],
-  taobaoLink: 'https://m.tb.cn/h.SQg8Sq4' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQg8Sq4',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/33.webp'
   },
   {
     id: '34',
@@ -853,7 +911,8 @@
     priceCategory: '进阶款',
     description: '保护胶原、紧致淡纹',
     keywords: ["保护胶原、紧致淡纹"],
-  taobaoLink: 'https://m.tb.cn/h.S9PSNBg' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.S9PSNBg',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/34.webp'
   },
   {
     id: '35',
@@ -865,7 +924,8 @@
     priceCategory: '进阶款',
     description: '尤其适合敏感肌',
     keywords: ["尤其适合敏感肌"],
-  taobaoLink: 'https://m.tb.cn/h.SQugkNr' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQugkNr',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/35.webp'
   },
   // 贵妇姐姐
   {
@@ -878,20 +938,22 @@
     priceCategory: '贵妇姐姐',
     description: '多和一',
     keywords: ["多和一"],
-  taobaoLink: 'https://m.tb.cn/h.SQGFgfC' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQGFgfC',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/36.webp'
   },
-  {
-    id: '37',
-    name: 'Fresh古源面霜',
-    category: '面霜',
-    skinTypes: ["干皮", "干敏皮"],
-    benefits: ["保湿补水", "抗皱紧致", "滋养"],
-    priceRange: '¥1560/2罐',
-    priceCategory: '贵妇姐姐',
-    description: '高浓度油脂，质地厚实',
-    keywords: ["高浓度油脂", "质地厚实"],
-  taobaoLink: 'https://m.tb.cn/h.S9kLqRR' // 待填入淘宝联盟推广链接
-  },
+    {
+        id: '37',
+        name: 'Fresh古源面霜',
+        category: '面霜',
+        skinTypes: ["干皮", "干敏皮"],
+        benefits: ["保湿补水", "抗皱紧致", "滋养"],
+        priceRange: '¥1560/2罐',
+        priceCategory: '贵妇姐姐',
+        description: '高浓度油脂，质地厚实',
+        keywords: ["高浓度油脂", "质地厚实"],
+        taobaoLink: 'https://m.tb.cn/h.S9kLqRR',
+        imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/37.webp'
+    },
   {
     id: '38',
     name: '兰蔻菁纯面霜',
@@ -902,7 +964,8 @@
     priceCategory: '贵妇姐姐',
     description: '弹嫩焕亮，适合大干皮',
     keywords: ["弹嫩焕亮", "适合大干皮"],
-  taobaoLink: 'https://m.tb.cn/h.SQpgckp' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQpgckp',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/38.webp'
   },
   {
     id: '39',
@@ -914,7 +977,8 @@
     priceCategory: '贵妇姐姐',
     description: '玻色因30%，抑制因糖化引起的胶原流失',
     keywords: ["玻色因30%", "抑制因糖化引起的胶原流失"],
-  taobaoLink: 'https://m.tb.cn/h.SQ5I9SX' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQ5I9SX',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/39.webp'
   },
   {
     id: '40',
@@ -926,7 +990,8 @@
     priceCategory: '贵妇姐姐',
     description: '玻色因50%，边修边抗皱',
     keywords: ["玻色因50%", "边修边抗皱"],
-  taobaoLink: 'https://m.tb.cn/h.SQp4KAT' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQp4KAT',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/40.webp'
   },
   {
     id: '41',
@@ -938,7 +1003,8 @@
     priceCategory: '贵妇姐姐',
     description: '适合偏干瘪肌肤，细腻紧致',
     keywords: ["适合偏干瘪肌肤", "细腻紧致"],
-  taobaoLink: 'https://m.tb.cn/h.S9PaWBo' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.S9PaWBo',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/41.webp'
   },
   {
     id: '42',
@@ -948,9 +1014,10 @@
     benefits: ["抗皱紧致", "保湿补水", "修护舒缓"],
     priceRange: '¥1840/瓶',
     priceCategory: '贵妇姐姐',
-    description: '适合大干皮',
-    keywords: ["适合大干皮"],
-  taobaoLink: 'https://m.tb.cn/h.SQpWrHb' // 待填入淘宝联盟推广链接
+    description: '适合大干皮，秋冬天没它不行',
+    keywords: ["适合大干皮，秋冬天没它不行"],
+    taobaoLink: 'https://m.tb.cn/h.SQpWrHb',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/42.webp'
   },
   {
     id: '43',
@@ -962,7 +1029,8 @@
     priceCategory: '贵妇姐姐',
     description: '大牌抗皱，层层淡化细纹',
     keywords: ["大牌抗皱", "层层淡化细纹"],
-  taobaoLink: 'https://m.tb.cn/h.SQpWrHb' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQpWrHb',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/43.webp'
   },
   {
     id: '44',
@@ -974,7 +1042,8 @@
     priceCategory: '贵妇姐姐',
     description: '万代兰成分，焕醒肌肤活力',
     keywords: ["万代兰成分", "焕醒肌肤活力"],
-  taobaoLink: 'https://m.tb.cn/h.SQpXG5C' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQpXG5C',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/44.webp'
   },
   {
     id: '45',
@@ -984,9 +1053,10 @@
     benefits: ["抗皱紧致", "美白提亮", "保湿补水"],
     priceRange: '¥1880/瓶',
     priceCategory: '贵妇姐姐',
-    description: '让肌肤又软又嫩',
-    keywords: ["让肌肤又软又嫩"],
-  taobaoLink: 'https://m.tb.cn/h.S9kwtVL' // 待填入淘宝联盟推广链接
+    description: '让肌肤又软又嫩，佳琦同款',
+    keywords: ["让肌肤又软又嫩，佳琦同款"],
+    taobaoLink: 'https://m.tb.cn/h.S9kwtVL',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/45.webp'
   },
   {
     id: '46',
@@ -996,9 +1066,10 @@
     benefits: ["抗皱紧致", "美白提亮", "保湿补水"],
     priceRange: '¥1880/瓶',
     priceCategory: '贵妇姐姐',
-    description: '让肌肤又软又嫩',
-    keywords: ["让肌肤又软又嫩"],
-  taobaoLink: 'https://m.tb.cn/h.S9kwtVL' // 待填入淘宝联盟推广链接
+    description: '让肌肤又软又嫩，佳琦同款',
+    keywords: ["让肌肤又软又嫩，佳琦同款"],
+    taobaoLink: 'https://m.tb.cn/h.S9kwtVL',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/46.webp'
   },
   {
     id: '47',
@@ -1010,7 +1081,8 @@
     priceCategory: '贵妇姐姐',
     description: '防止胶原流失、密集修复',
     keywords: ["防止胶原流失、密集修复"],
-  taobaoLink: 'https://m.tb.cn/h.SQpZP1y' // 待填入淘宝联盟推广链接
+    taobaoLink: 'https://m.tb.cn/h.SQpZP1y',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/47.webp'
   },
   {
     id: '48',
@@ -1020,9 +1092,10 @@
     benefits: ["抗皱紧致", "美白提亮", "修护舒缓", "补水保湿"],
     priceRange: '¥1820/瓶',
     priceCategory: '贵妇姐姐',
-    description: '原料炒鸡贵',
-    keywords: ["原料炒鸡贵"],
-  taobaoLink: 'https://m.tb.cn/h.SQLyg5s' // 待填入淘宝联盟推广链接
+    description: '原料炒鸡贵，熬夜加班救星',
+    keywords: ["原料炒鸡贵，熬夜加班救星"],
+    taobaoLink: 'https://m.tb.cn/h.SQLyg5s',
+    imageUrl: 'https://skincare-images.oss-cn-beijing.aliyuncs.com/products/48.webp'
   }
 ];
     </script>
